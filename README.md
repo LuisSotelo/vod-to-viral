@@ -6,7 +6,8 @@
 ![FFmpeg](https://img.shields.io/badge/ffmpeg-required-orange)
 ![CUDA](https://img.shields.io/badge/GPU-optional-green)
 
-Convierte automáticamente streams de Twitch en **clips virales listos para TikTok, Reels y Shorts** usando IA.
+Convierte automáticamente streams de **Twitch y videos de YouTube** en
+**clips virales listos para TikTok, Reels y Shorts** usando IA.
 
 > 🎯 De VOD largo → contenido viral en minutos
 
@@ -16,7 +17,7 @@ Convierte automáticamente streams de Twitch en **clips virales listos para TikT
 
 🔥 Detecta momentos hype  
 🎧 Transcribe con Whisper  
-💬 Analiza chat  
+💬 Analiza chat (solo Twitch) 
 📱 Genera formato vertical (9:16)  
 🎯 Subtítulos dinámicos tipo MrBeast  
 
@@ -39,7 +40,7 @@ Convierte automáticamente streams de Twitch en **clips virales listos para TikT
 2. Detecta momentos importantes usando:
    - 🔊 audio (energía/emoción)
    - 🧾 texto (keywords)
-   - 💬 chat (reacciones)
+   - 💬 chat (solo Twitch)
    - 🎥 movimiento visual  
 3. Genera clips automáticamente:
    - Horizontal (16:9)
@@ -53,7 +54,7 @@ Convierte automáticamente streams de Twitch en **clips virales listos para TikT
 El sistema usa un enfoque de **multi-signal scoring**:
 
 - 🔊 **Audio peaks** → emociones, gritos, hype  
-- 💬 **Chat spikes** → mensajes por segundo  
+- 💬 **Chat spikes** → mensajes por segundo (Twitch)  
 - 🧾 **Whisper** → palabras clave  
 - 🎥 **Movimiento visual** → cambios de escena  
 
@@ -66,11 +67,53 @@ Todos los factores se combinan para detectar los mejores momentos del stream.
 - 🧠 Detección inteligente de clips (multi-signal scoring)
 - 🎧 Transcripción con **Whisper (GPU opcional)**
 - 💬 Análisis de chat de Twitch
-- 📱 Layout vertical optimizado (9:16)
-- 🎨 Subtítulos estilo viral (word-by-word)
-- ⚡ Render rápido con ffmpeg
+- 🎥 Soporte para YouTube videos
+- 📱 Layout vertical adaptable:
+ -twitch (facecam + gameplay)
+ -center (crop centrado, ideal para YouTube)
+- 🎨 Subtítulos estilo viral (word-by-word highlight)
+- ⚡ Render con GPU (NVENC) + fallback a CPU
 - 🧪 Modo preview
 - 🧹 Limpieza automática
+
+---
+
+## ⚠️ Restricción IMPORTANTE del layout vertical
+
+> 🚨 **Regla obligatoria para el modo `twitch`:**
+
+- La **cámara SIEMPRE debe estar del lado izquierdo del video**
+- El layout vertical está diseñado como:
+  - Parte superior → **facecam**
+  - Parte inferior → **gameplay**
+
+### ❗ ¿Por qué es obligatorio?
+
+El sistema asume esta configuración para:
+
+- 📱 Respetar safe areas de TikTok / Shorts
+- 👀 Priorizar la cara (enganche visual)
+- 🎯 Alinear correctamente subtítulos
+- ✂️ Aplicar crops precisos (face + gameplay)
+
+Cambiar esto puede romper:
+
+- El recorte de la cámara
+- El framing del gameplay
+- La posición de subtítulos
+- La composición general del clip
+
+---
+
+### 🧠 ¿Qué hacer si tu cámara está a la derecha?
+
+Tienes 2 opciones:
+
+#### ✅ Opción recomendada
+Usar modo centrado:
+
+```bash
+--vertical-mode center
 
 ---
 
@@ -159,11 +202,14 @@ OUTPUT_DIR=./out
 ```
 
 ## ▶️ Uso
-
+🔵 Twitch (default)
 ```bash
-python main.py
-Con flags:
 python main.py --max-clips 10 --vertical
+```
+
+🔴 YouTube
+```bash
+python main.py --youtube-url "https://youtube.com/..." --vertical
 ```
 ---
 
