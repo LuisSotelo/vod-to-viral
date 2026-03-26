@@ -640,6 +640,15 @@ def transcribe_to_srt(
         compute_type,
     )
 
+    hf_token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACE_HUB_TOKEN")
+
+    if hf_token:
+        if not os.getenv("HUGGINGFACE_HUB_TOKEN"):
+            os.environ["HUGGINGFACE_HUB_TOKEN"] = hf_token
+        logger.info("Hugging Face autenticado (HF_TOKEN detectado)")
+    else:
+        logger.info("HF_TOKEN no definido → modo público (posibles rate limits)")
+
     model = WhisperModel(
         cfg.model_size,
         device=device,
