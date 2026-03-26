@@ -132,18 +132,13 @@ def load_env_and_args() -> Config:
             "horizontal y/o vertical."
         ),
         epilog=(
-            "Ejemplos de uso:\n"
+            "Ejemplos:\n"
             "  python main.py --max-clips 5\n"
             "  python main.py --max-clips 5 --vertical\n"
             "  python main.py --max-clips 1 --vertical --preview-vertical\n"
             "  python main.py --vod-id 2730289595 --max-clips 3 --vertical\n"
             "  python main.py --peak-height 0.20 --min-peak-distance-sec 5\n"
-            "  python main.py --reset cache --reset-only\n\n"
-            "Variables requeridas en .env:\n"
-            "  TWITCH_CLIENT_ID\n"
-            "  TWITCH_CLIENT_SECRET\n"
-            "  TWITCH_USER_LOGIN\n"
-            "  OUTPUT_DIR (opcional, default: ./out)\n"
+            "  python main.py --reset cache --reset-only\n"
         ),
         formatter_class=argparse.RawTextHelpFormatter,
     )

@@ -158,18 +158,12 @@ TWITCH_USER_LOGIN=
 OUTPUT_DIR=./out
 ```
 
-# Opcional
-
--WHISPER_MODEL=base
--USE_GPU=true
----
-
 ## ▶️ Uso
 
 ```bash
 python main.py
 Con flags:
-python main.py --max-clips 10 -vertical
+python main.py --max-clips 10 --vertical
 ```
 ---
 
@@ -203,10 +197,18 @@ output/
 
 ## 🧪 Flags útiles
 ```bash
---preview
---no-subtitles
---vertical-only
---horizontal-only
+--max-clips
+--min-clip-sec
+--max-clip-sec
+--vertical
+--skip-download
+--vod-id
+--model-size
+--peak-height
+--min-peak-distance-sec
+--reset
+--reset-only
+--preview-vertical
 ```
 ---
 
