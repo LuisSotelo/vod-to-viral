@@ -134,13 +134,18 @@ def load_env_and_args() -> Config:
             "horizontal y/o vertical."
         ),
         epilog=(
-            "Ejemplos:\n"
+            "Ejemplos de uso:\n"
             "  python main.py --max-clips 5\n"
             "  python main.py --max-clips 5 --vertical\n"
             "  python main.py --max-clips 1 --vertical --preview-vertical\n"
             "  python main.py --vod-id 2730289595 --max-clips 3 --vertical\n"
             "  python main.py --peak-height 0.20 --min-peak-distance-sec 5\n"
-            "  python main.py --reset cache --reset-only\n"
+            "  python main.py --reset cache --reset-only\n\n"
+            "Variables requeridas en .env:\n"
+            "  TWITCH_CLIENT_ID\n"
+            "  TWITCH_CLIENT_SECRET\n"
+            "  TWITCH_USER_LOGIN\n"
+            "  OUTPUT_DIR (opcional, default: ./out)\n"
         ),
         formatter_class=argparse.RawTextHelpFormatter,
     )
@@ -468,6 +473,11 @@ def download_chat(vod_id, cfg, logger, chat_path: Path) -> bool:
         logger.warning("No se pudo descargar el chat. Continuaré sin chat. Motivo: %s", e)
         return False
 
+
+# ---------------------------------------------------------------------------
+# Descarga de VOD y chat
+# ---------------------------------------------------------------------------
+
 def download_youtube_video(url: str, cfg: Config, logger: logging.Logger) -> Path:
     """Descarga un video de YouTube usando yt-dlp en la mejor calidad posible."""
     from yt_dlp import YoutubeDL
@@ -491,6 +501,7 @@ def download_youtube_video(url: str, cfg: Config, logger: logging.Logger) -> Pat
         ext = info.get("ext", "")
         video_path = Path(filename)
 
+        # Si yt-dlp fusionó a mp4, el nombre final puede cambiar
         if ext and video_path.suffix.lower() != ".mp4":
             candidate_mp4 = video_path.with_suffix(".mp4")
             if candidate_mp4.exists():
@@ -683,8 +694,13 @@ def get_torch_device_and_compute_type(logger: logging.Logger) -> tuple[str, str]
         return "cpu", "float32"
 
 
+def get_ffmpeg_video_encoder() -> str:
+    return "h264_nvenc"
+
+
 def ffmpeg_hwaccel_input_args() -> list[str]:
     return ["-hwaccel", "cuda"]
+
 
 def transcribe(
     video_path: Path, cfg: Config, logger: logging.Logger
@@ -1285,6 +1301,7 @@ def render_clip_with_subs(
     )
 
     v_in = str(video_path.resolve())
+    vcodec = get_ffmpeg_video_encoder()
 
     # -------------------------------------------------
     # 1) Render horizontal 16:9
@@ -1524,7 +1541,6 @@ def render_clip_with_subs(
             logger.error("ffmpeg error:\n%s", res_cpu.stderr)
             raise RuntimeError("ffmpeg reaction render failed")
         
-
 def quick_test(
     video_path: Path,
     segments: list[dict],
@@ -1554,7 +1570,6 @@ def quick_test(
         cfg,
         logger,
     )
-
 
 def render_vertical_preview_frame(
     clip: Clip, video_path: Path, out_dir: Path, cfg: Config, logger: logging.Logger
@@ -1845,13 +1860,29 @@ def main() -> None:
     cfg.output_dir.mkdir(parents=True, exist_ok=True)
     logger = setup_logging(cfg.output_dir / "process.log")
 
+    # --- Lógica de valores por defecto dinámicos ---
+    if cfg.youtube_url:
+        logger.info("Modo YouTube detectado → Configurando defaults de YT")
+        # Forzamos 0.5 para YouTube (o el valor que prefieras)
+        cfg.peak_height = 0.5 
+        
+        if cfg.vertical and cfg.vertical_mode == "twitch":
+            cfg.vertical_mode = "center"
+    else:
+        logger.info("Modo Twitch detectado → Configurando defaults de Twitch")
+        # Si el usuario NO pasó un valor manual por consola, bajamos a 0.10
+        # Comparamos contra el default original (0.5) del ArgumentParser
+        if cfg.peak_height == 0.5: 
+            cfg.peak_height = 0.10
+            logger.info("Ajustando peak_height automático a 0.10 para mejor detección")
+
     if cfg.reset:
         summary = clean_workspace(cfg, logger, mode=cfg.reset)
         if cfg.reset_only:
             logger.info("Reset-only: %s", summary)
             print(f"[reset] {summary['files']} archivos y {summary['dirs']} carpetas eliminadas")
             return
-        
+
     if cfg.youtube_url and cfg.vertical and cfg.vertical_mode == "twitch":
         logger.info("Modo YouTube detectado → cambiando vertical_mode a 'center'")
         cfg.vertical_mode = "center"
@@ -1871,6 +1902,7 @@ def main() -> None:
             }
 
             chat_path = cfg.output_dir / f"{vod['id']}_chat.json"
+            chat_ok = False
             logger.info("Modo YouTube → sin chat")
         else:
             token = get_access_token(cfg, logger)
@@ -1925,12 +1957,9 @@ def main() -> None:
 
         write_report(vod, clips, cfg, cfg.output_dir / str(vod["id"]), logger)
 
-        # quick_test(video_path, segments, cfg, logger)
-
     except Exception as exc:
         logger.exception("Error durante la ejecución: %s", exc)
         sys.exit(1)
-
 
 if __name__ == "__main__":
     main()
